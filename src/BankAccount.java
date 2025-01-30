@@ -14,7 +14,7 @@ public class BankAccount {
         }else{
             System.out.println("Deposit must be more then 0");;
         }
-    }
+    };
     public String getAccountNumber() {
         return accountNumber;
     }

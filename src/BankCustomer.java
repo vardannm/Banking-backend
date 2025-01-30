@@ -14,6 +14,12 @@ public class BankCustomer {
         this.pin = pin;
         this.accounts = new ArrayList<>();
     }
+    public String getCustomerID(){
+        return customerID;
+    }
+    public String getName(){
+        return name;
+    }
 
     public void addAccount(BankAccount account) {
         accounts.add(account);
