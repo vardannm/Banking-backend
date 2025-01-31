@@ -1,10 +1,12 @@
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BankCustomer {
     private String name;
     private String customerID;
-
+    private String hashedPin;
     private String pin;
     private String phoneNumber;
     private String email;
@@ -13,10 +15,29 @@ public class BankCustomer {
     public BankCustomer(String name, String customerID,String pin,String email,String phoneNumber) {
         this.name = name;
         this.customerID = customerID;
-        this.pin = pin;
+        this.hashedPin = hashPin(pin);
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.accounts = new ArrayList<>();
+    }
+    private String hashPin(String pin) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = md.digest(pin.getBytes());
+            StringBuilder hexString = new StringBuilder();
+
+            for (byte b : hashBytes) {
+                hexString.append(String.format("%02x", b));
+            }
+
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error hashing PIN", e);
+        }
+    }
+
+    public boolean validatePin(String enteredPin) {
+        return hashedPin.equals(hashPin(enteredPin));  // Compare entered PIN (hashed) with stored hashed PIN
     }
     public String getCustomerID(){
         return customerID;
@@ -44,9 +65,6 @@ public class BankCustomer {
         for (BankAccount account : accounts) {
             account.displayBalance();
         }
-    }
-    public boolean validatePin(String enteredPin){
-     return pin.equals(enteredPin);
     }
     public List<BankAccount> getAccounts() {
         return accounts;
