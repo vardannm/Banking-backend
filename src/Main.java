@@ -48,9 +48,14 @@ public class Main {
         String name = scanner.nextLine();
         System.out.print("Enter customer ID: ");
         String customerID = scanner.nextLine();
+        System.out.println("Enter customer email");
+        String email = scanner.nextLine();
+        System.out.println("Enter customer Phone number");
+        String phoneNumber = scanner.nextLine();
         System.out.print("Set a PIN for security: ");
         String pin = scanner.nextLine();
-        BankCustomer customer = new BankCustomer(name, customerID, pin);
+
+        BankCustomer customer = new BankCustomer(name, customerID,pin,email,phoneNumber);
 
 
         System.out.print("How many accounts do you want to create? ");
