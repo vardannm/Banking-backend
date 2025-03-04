@@ -86,9 +86,9 @@ public class Main implements CommandLineRunner {
         BankCustomer customer = new BankCustomer(name, customerID, pin, email, phoneNumber);
 
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
-            conn.setAutoCommit(false); // Start transaction
+            conn.setAutoCommit(false);
             try {
-                // Save customer
+
                 PreparedStatement stmt = conn.prepareStatement(
                         "INSERT INTO customers (customer_id, name, hashed_pin, email, phone_number) VALUES (?, ?, ?, ?, ?)");
                 stmt.setString(1, customerID);
@@ -98,8 +98,6 @@ public class Main implements CommandLineRunner {
                 stmt.setString(5, phoneNumber);
                 stmt.executeUpdate();
                 System.out.println("Customer saved to database successfully!");
-
-                // Save accounts
                 System.out.print("How many accounts do you want to create? ");
                 int numAccounts = getValidInt(scanner);
                 for (int i = 0; i < numAccounts; i++) {
@@ -118,11 +116,11 @@ public class Main implements CommandLineRunner {
                     accountStmt.setString(4, customer.hashPin(pin));
                     accountStmt.executeUpdate();
                 }
-                conn.commit(); // Commit only if all succeed
+                conn.commit();
                 System.out.println("Customer and accounts created successfully!");
                 customers.add(customer);
             } catch (SQLException e) {
-                conn.rollback(); // Roll back on any error
+                conn.rollback();
                 if (e.getSQLState().equals("23000")) {
                     System.err.println("Error: ID '" + customerID + "' or account number already exists.");
                 } else {
@@ -180,9 +178,8 @@ public class Main implements CommandLineRunner {
                 String hashedPin = rs.getString("hashed_pin");
                 String email = rs.getString("email");
                 String phoneNumber = rs.getString("phone_number");
-                // Pass "" to constructor, then set hashedPin directly
                 BankCustomer customer = new BankCustomer(name, customerID, "", email, phoneNumber);
-                customer.hashedPin = hashedPin; // Set DB hash explicitly
+                customer.hashedPin = hashedPin;
 
                 PreparedStatement accountStmt = conn.prepareStatement(
                         "SELECT account_number, balance, hashed_pin FROM accounts WHERE customer_id = ?");
@@ -393,7 +390,6 @@ public class Main implements CommandLineRunner {
         }
     }
 
-    // Helper methods for input validation
     private int getValidInt(Scanner scanner) {
         try {
             int value = scanner.nextInt();

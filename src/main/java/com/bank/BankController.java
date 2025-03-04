@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -22,8 +21,10 @@ public class BankController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         BankCustomer customer = bankService.login(request.customerID(), request.pin());
         if (customer != null) {
-            double balance = customer.getAccounts().isEmpty() ? 0.0 : customer.getAccounts().get(0).getBalance();
-            return ResponseEntity.ok(new CustomerResponse(customer.getName(), balance));
+            List<AccountSummary> accounts = customer.getAccounts().stream()
+                    .map(AccountSummary::new)
+                    .toList();
+            return ResponseEntity.ok(new CustomerResponse(customer.getName(), accounts));
         }
         return ResponseEntity.status(401).body("Invalid credentials");
     }
@@ -32,19 +33,18 @@ public class BankController {
     public ResponseEntity<CustomerResponse> getCustomer(@RequestParam String customerID) {
         BankCustomer customer = bankService.loadCustomer(customerID);
         if (customer != null) {
-            double balance = customer.getAccounts().isEmpty() ? 0.0 : customer.getAccounts().get(0).getBalance();
-            return ResponseEntity.ok(new CustomerResponse(customer.getName(), balance));
+            List<AccountSummary> accounts = customer.getAccounts().stream()
+                    .map(AccountSummary::new)
+                    .toList();
+            return ResponseEntity.ok(new CustomerResponse(customer.getName(), accounts));
         }
         return ResponseEntity.status(404).body(null);
     }
 
     @GetMapping("/transactions")
     public ResponseEntity<List<BankAccount.Transaction>> getTransactions(@RequestParam String customerID) {
-        BankCustomer customer = bankService.loadCustomer(customerID);
-        if (customer != null) {
-            return ResponseEntity.ok(customer.getAccounts().isEmpty() ? new ArrayList<>() : customer.getAccounts().get(0).getTransactionHistory());
-        }
-        return ResponseEntity.status(404).body(null);
+        List<BankAccount.Transaction> transactions = bankService.getTransactions(customerID);
+        return ResponseEntity.ok(transactions);
     }
 
     @PostMapping("/deposit")
@@ -55,6 +55,7 @@ public class BankController {
                 if (acc.getAccountNumber().equals(request.accountNumber())) {
                     acc.deposit(request.amount());
                     bankService.updateBalance(request.accountNumber(), acc.getBalance());
+                    bankService.logTransaction(request.accountNumber(), "DEPOSIT", request.amount());
                     return ResponseEntity.ok("Deposit successful");
                 }
             }
@@ -71,6 +72,7 @@ public class BankController {
                 if (acc.getAccountNumber().equals(request.accountNumber())) {
                     acc.withdraw(request.amount());
                     bankService.updateBalance(request.accountNumber(), acc.getBalance());
+                    bankService.logTransaction(request.accountNumber(), "WITHDRAWAL", request.amount());
                     return ResponseEntity.ok("Withdrawal successful");
                 }
             }
@@ -90,10 +92,28 @@ public class BankController {
         }
         return ResponseEntity.status(404).body("Customer not found");
     }
+
+    @PostMapping("/transfer")
+    public ResponseEntity<String> transfer(@RequestBody TransferRequest request) {
+        try {
+            bankService.transfer(request.customerID(), request.fromAccountNumber(), request.toAccountNumber(), request.amount());
+            return ResponseEntity.ok("Transfer successful");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Transfer failed: " + e.getMessage());
+        }
+    }
 }
 
 record LoginRequest(String customerID, String pin) {}
-record CustomerResponse(String name, double balance) {}
+record CustomerResponse(String name, List<AccountSummary> accounts) {}
+record AccountSummary(String accountNumber, double balance) {
+    public AccountSummary(BankAccount account) {
+        this(account.getAccountNumber(), account.getBalance());
+    }
+}
 record DepositRequest(String customerID, String accountNumber, double amount) {}
 record WithdrawRequest(String customerID, String accountNumber, double amount) {}
 record AddAccountRequest(String customerID, String accountNumber, double initialBalance, String pin) {}
+record TransferRequest(String customerID, String fromAccountNumber, String toAccountNumber, double amount) {}

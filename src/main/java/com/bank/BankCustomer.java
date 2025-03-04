@@ -16,8 +16,6 @@ public class BankCustomer {
     private String phoneNumber;
     private String email;
     private List<BankAccount> accounts;
-
-    // DB credentials moved to application.properties, but keeping here for now
     private static final String DB_URL = "jdbc:mysql://localhost:3306/bankdbfirst?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String DB_USER = "root";
     private static final String DB_PASS = "1234";

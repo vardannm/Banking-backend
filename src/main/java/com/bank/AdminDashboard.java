@@ -65,7 +65,6 @@ public class AdminDashboard {
                     System.out.println("Invalid choice. Try again.");
             }
         }
-        // Scanner closed by caller (e.g., Main.java)
     }
 
     private void viewAllCustomers() {
