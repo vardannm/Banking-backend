@@ -93,7 +93,7 @@ public class BankController {
         return ResponseEntity.status(404).body("Customer not found");
     }
 
-    @PostMapping("/transfer")
+    @PostMapping("/transfer") // Fixed typo from "@.PostMapping"
     public ResponseEntity<String> transfer(@RequestBody TransferRequest request) {
         try {
             bankService.transfer(request.customerID(), request.fromAccountNumber(), request.toAccountNumber(), request.amount());
@@ -102,6 +102,25 @@ public class BankController {
             return ResponseEntity.status(400).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Transfer failed: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
+        try {
+            bankService.createNewCustomer(
+                    request.name(),
+                    request.customerID(),
+                    request.email(),
+                    request.phoneNumber(),
+                    request.pin(),
+                    request.accounts()
+            );
+            return ResponseEntity.ok("Customer registered successfully");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Registration failed: " + e.getMessage());
         }
     }
 }
@@ -117,3 +136,4 @@ record DepositRequest(String customerID, String accountNumber, double amount) {}
 record WithdrawRequest(String customerID, String accountNumber, double amount) {}
 record AddAccountRequest(String customerID, String accountNumber, double initialBalance, String pin) {}
 record TransferRequest(String customerID, String fromAccountNumber, String toAccountNumber, double amount) {}
+record RegisterRequest(String name, String customerID, String email, String phoneNumber, String pin, List<BankService.AccountInfo> accounts) {}

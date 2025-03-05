@@ -185,4 +185,52 @@ public class BankService {
             e.printStackTrace();
         }
     }
+
+    public BankCustomer createNewCustomer(String name, String customerID, String email, String phoneNumber, String pin, List<AccountInfo> accounts) {
+        BankCustomer customer = new BankCustomer(name, customerID, pin, email, phoneNumber);
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
+            conn.setAutoCommit(false);
+            try {
+                PreparedStatement stmt = conn.prepareStatement(
+                        "INSERT INTO customers (customer_id, name, hashed_pin, email, phone_number) VALUES (?, ?, ?, ?, ?)");
+                stmt.setString(1, customerID);
+                stmt.setString(2, name);
+                stmt.setString(3, customer.hashPin(pin));
+                stmt.setString(4, email);
+                stmt.setString(5, phoneNumber);
+                stmt.executeUpdate();
+
+                for (AccountInfo account : accounts) {
+                    BankAccount bankAccount = new BankAccount(account.accountNumber(), account.initialBalance(), pin);
+                    customer.addAccount(bankAccount);
+                    PreparedStatement accountStmt = conn.prepareStatement(
+                            "INSERT INTO accounts (account_number, customer_id, balance, hashed_pin) VALUES (?, ?, ?, ?)");
+                    accountStmt.setString(1, account.accountNumber());
+                    accountStmt.setString(2, customerID);
+                    accountStmt.setDouble(3, account.initialBalance());
+                    accountStmt.setString(4, customer.hashPin(pin));
+                    accountStmt.executeUpdate();
+                }
+                conn.commit();
+                System.out.println("Customer " + customerID + " and accounts created successfully!");
+                return customer;
+            } catch (SQLException e) {
+                conn.rollback();
+                if (e.getSQLState().equals("23000")) {
+                    throw new IllegalArgumentException("Error: ID '" + customerID + "' or account number already exists.");
+                } else {
+                    System.err.println("Database error: " + e.getMessage());
+                    e.printStackTrace();
+                    throw e;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Connection error: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to connect to database", e);
+        }
+    }
+
+    // Nested static record for account info
+    public static record AccountInfo(String accountNumber, double initialBalance) {}
 }
